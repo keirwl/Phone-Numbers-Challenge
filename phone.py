@@ -2,6 +2,7 @@ import csv
 from collections import defaultdict
 from datetime import datetime, time, timedelta
 import json
+from math import ceil
 
 nightStart = time(hour=20)
 nightEnd = time(hour=8)
@@ -113,8 +114,12 @@ def callCost(call, freeInternational, freeLocal):
         return cost, freeInternational, remainingFree
 
     # Call time is split between day and night
-    dayMins = max(startedMins(nightEnd - chargeStart.time()), 0)
-    nightMins = max(startedMins(nightStart - chargeEnd.time()), 0)
+    dayMins = max(startedMins(timedelta(hours=nightEnd.hour,
+        minutes=nightEnd.minute) - timedelta(hours=chargeStart.hour,
+            minutes=chargeStart.minute, seconds=chargeStart.second)), 0)
+    nightMins = max(startedMins(timedelta(hours=nightStart.hour,
+        minutes=nightStart.minute) - timedelta(hours=chargeEnd.hour,
+            minutes=chargeEnd.minute, seconds=chargeEnd.second)), 0)
 
     if callType == "landline":
         cost += 15 * dayMins
@@ -129,7 +134,10 @@ def callCost(call, freeInternational, freeLocal):
 def startedMins(duration):
     """Returns number of 'started' mins in a timedelta, which is always the
     number of clock minutes plus 1, e.g. 00:59 is 1 minute, 01:00 is two"""
-    return duration / timedelta(mins=1) + 1
+    if duration.total_seconds() == 0:
+        return 0
+    else:
+        return ceil(duration / timedelta(minutes=1))
 
 
 def parseCallLog(callLogFilePath):
